@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學思軒閱讀書櫃 (雲端即時同步版) - 龍門國中國文教室</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme"> <!-- Shared ambient theme for virtual bookshelf -->
+    
+    <!-- App Container -->
+    <div id="appContainer" class="app-container active">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1 class="app-title"><span class="title-icon">🏛️</span> 學思軒閱讀書櫃</h1>
+                
+                <!-- Student Session Badge -->
+                <div id="userInfoBadge" class="user-info-badge guest-mode" onclick="promptStudentLogin()">
+                    <div class="user-details" id="userDetailsText">
+                        <div class="user-status-label">👤 登記學生：未登入</div>
+                        <div class="user-status-sub">(點此登入以登記書籍)</div>
+                    </div>
+                    <button class="btn-icon-small" id="btnUserAction" title="登入/切換學生">🔑</button>
+                </div>
+            </div>
+            
+            <!-- Header Center Calendar Widget -->
+            <div class="header-center">
+                <div class="calendar-widget">
+                    <div class="calendar-month-year" id="calMonthYear">----年--月</div>
+                    <div class="calendar-day" id="calDay">--</div>
+                    <div class="calendar-weekday" id="calWeekday">---</div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="openTeacherModal()">
+                    <span class="btn-icon">⚙️</span>
+                    <span class="btn-text-wrap">
+                        <span>教師</span>
+                        <span>管理</span>
+                    </span>
+                </button>
+                <button class="btn btn-primary" onclick="handleRegisterBookClick()">
+                    <span class="btn-icon">➕</span>
+                    <span class="btn-text-wrap">
+                        <span>登記</span>
+                        <span>書籍</span>
+                    </span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Stats & Quick Actions -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-info">
+                        <span class="stat-label">累積圖書總量</span>
+                        <span class="stat-value" id="statTotalBooks">0 本</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <span class="stat-label">參與閱讀人數</span>
+                        <span class="stat-value" id="statTotalStudents">0 人</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <span class="stat-label">最熱門班級</span>
+                        <span class="stat-value" id="statTopClass">無</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✨</div>
+                    <div class="stat-info">
+                        <span class="stat-label">主流閱讀心情</span>
+                        <span class="stat-value" id="statTopMood">無</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Leaderboard Section -->
+            <section class="leaderboard-section">
+                <div class="leaderboard-card">
+                    <div class="leaderboard-header">
+                        <span class="leaderboard-title-icon">👑</span>
+                        <h3>學思軒個人閱讀王</h3>
+                    </div>
+                    <ul id="personalLeaderboard" class="leaderboard-list">
+                        <!-- Will be populated dynamically -->
+                    </ul>
+                </div>
+                
+                <div class="leaderboard-card">
+                    <div class="leaderboard-header">
+                        <span class="leaderboard-title-icon">🏫</span>
+                        <h3>學思軒班級閱讀王</h3>
+                    </div>
+                    <ul id="classLeaderboard" class="leaderboard-list">
+                        <!-- Will be populated dynamically -->
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Search & Filters -->
+            <section class="filter-section">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="搜尋書名、作者、學生姓名或心得..." oninput="filterBooks()">
+                </div>
+                <div class="filter-controls">
+                    <!-- Class Filter (Dynamic) -->
+                    <select id="classFilter" onchange="filterBooks()">
+                        <option value="all">所有班級</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                    <!-- Mood Filter -->
+                    <select id="moodFilter" onchange="filterBooks()">
+                        <option value="all">所有心情</option>
+                        <option value="😊">😊 充實</option>
+                        <option value="🤯">🤯 震撼</option>
+                        <option value="😢">😢 感動</option>
+                        <option value="🤔">🤔 啟發</option>
+                        <option value="😍">😍 超推</option>
+                        <option value="🥱">🥱 乏味</option>
+                        <option value="custom">其他心情</option>
+                    </select>
+                    <!-- Sort Selection -->
+                    <select id="sortSelect" onchange="filterBooks()">
+                        <option value="newest">閱讀日期 (新到舊)</option>
+                        <option value="oldest">閱讀日期 (舊到新)</option>
+                        <option value="classSeat">班級座號 (小到大)</option>
+                        <option value="title">書名排序</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Bookcase UI Container -->
+            <section class="bookcase-wrapper">
+                <div class="bookcase-side frame-left"></div>
+                <div class="bookcase-shelves-container" id="shelvesContainer">
+                    <!-- Dynamic Shelves will be generated here -->
+                </div>
+                <div class="bookcase-side frame-right"></div>
+            </section>
+        </main>
+
+        <!-- Floating Action Button for Mobile -->
+        <button class="fab-btn" onclick="handleRegisterBookClick()" title="登記新書">➕</button>
+
+        <!-- Global Footer Disclaimer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <p class="footer-slogan">只要有心，人人都是國文神！</p>
+                <p class="footer-credit">個人登記即時同步雲端書架 &middot; 龍門國中黃于珊老師製作</p>
+                <p class="footer-copyright">&copy; 2026 龍門國中學思軒國文教室 &middot; 教師版權所有</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Student Login/Switch Modal -->
+    <div id="studentLoginModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="logo-icon">🔑</div>
+                <h3>學生登記身份登入</h3>
+                <button class="close-btn" onclick="closeModal('studentLoginModal')">&times;</button>
+            </div>
+            <form id="studentLoginForm" onsubmit="handleStudentLogin(event)">
+                <div class="form-group">
+                    <label for="studentClass">班級</label>
+                    <input type="text" id="studentClass" placeholder="例如：913" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="studentSeat">座號</label>
+                    <input type="number" id="studentSeat" min="1" max="99" placeholder="例如：13" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">姓名</label>
+                    <input type="text" id="studentName" placeholder="請輸入姓名" required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">確認登入</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Book Modal -->
+    <div id="bookModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">登記閱讀書籍</h3>
+                <button class="close-btn" onclick="closeModal('bookModal')">&times;</button>
+            </div>
+            <form id="bookForm" onsubmit="handleBookSubmit(event)">
+                <input type="hidden" id="editBookId">
+                <div class="form-group">
+                    <label>登記學生</label>
+                    <div class="readonly-badge" id="formStudentBadge">913班 13號 王大同</div>
+                </div>
+                <div class="form-group">
+                    <label for="bookTitle">書名 <span class="required">*</span></label>
+                    <input type="text" id="bookTitle" placeholder="例如：傾城之戀" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookAuthor">作者 <span class="required">*</span></label>
+                    <input type="text" id="bookAuthor" placeholder="例如：張愛玲" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookDate">閱讀日期 <span class="required">*</span></label>
+                    <input type="date" id="bookDate" required>
+                </div>
+                <div class="form-group">
+                    <label>看完的心情 <span class="required">*</span></label>
+                    <div class="mood-selector-container">
+                        <div class="mood-grid">
+                            <button type="button" class="mood-btn" onclick="selectMood('😊')" data-mood="😊">
+                                <span class="mood-emoji">😊</span><span class="mood-text">充實</span>
+                            </button>
+                            <button type="button" class="mood-btn" onclick="selectMood('🤯')" data-mood="🤯">
+                                <span class="mood-emoji">🤯</span><span class="mood-text">震撼</span>
+                            </button>
+                            <button type="button" class="mood-btn" onclick="selectMood('😢')" data-mood="😢">
+                                <span class="mood-emoji">😢</span><span class="mood-text">感動</span>
+                            </button>
+                            <button type="button" class="mood-btn" onclick="selectMood('🤔')" data-mood="🤔">
+                                <span class="mood-emoji">🤔</span><span class="mood-text">啟發</span>
+                            </button>
+                            <button type="button" class="mood-btn" onclick="selectMood('😍')" data-mood="😍">
+                                <span class="mood-emoji">😍</span><span class="mood-text">超推</span>
+                            </button>
+                            <button type="button" class="mood-btn" onclick="selectMood('🥱')" data-mood="🥱">
+                                <span class="mood-emoji">🥱</span><span class="mood-text">乏味</span>
+                            </button>
+                        </div>
+                        <div class="custom-mood-input-group">
+                            <input type="text" id="customMoodEmoji" placeholder="自訂Emoji (如 🤩)" max="2" style="width: 120px;">
+                            <input type="text" id="customMoodText" placeholder="自訂心情說明 (如 讚歎)">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyCustomMood()">套用</button>
+                        </div>
+                        <input type="hidden" id="selectedMoodEmoji" required>
+                        <input type="hidden" id="selectedMoodText" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>推薦指數 <span class="required">*</span></label>
+                    <div class="star-rating-picker">
+                        <span class="star" onclick="setRating(1)" data-value="1">☆</span>
+                        <span class="star" onclick="setRating(2)" data-value="2">☆</span>
+                        <span class="star" onclick="setRating(3)" data-value="3">☆</span>
+                        <span class="star" onclick="setRating(4)" data-value="4">☆</span>
+                        <span class="star" onclick="setRating(5)" data-value="5">☆</span>
+                        <input type="hidden" id="bookRating" value="" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bookReflection">
+                        閱讀心得/一小段文字 <span class="required">*</span>
+                        <span class="label-helper-question">（這本書最吸引你的地方是？你有什麼收穫或想法？）</span>
+                    </label>
+                    <textarea id="bookReflection" rows="4" placeholder="寫下這本書帶給你的收穫、喜愛的句子或簡短的心得..." required></textarea>
+                    <div class="textarea-footer">
+                        <span class="char-counter"><span id="charCount">0</span> 字</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bookModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">確認登記</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Book Detail Modal (Beautiful opened book design) -->
+    <div id="detailModal" class="modal-overlay">
+        <div class="book-detail-wrapper">
+            <div class="book-detail-card">
+                <button class="detail-close-btn" onclick="closeModal('detailModal')">&times;</button>
+                <div class="book-spine-accent" id="detailSpineAccent"></div>
+                <!-- Left Page: Cover & Basic Info -->
+                <div class="book-page book-page-left">
+                    <div class="page-content-wrapper">
+                        <div class="book-header-row">
+                            <div class="book-badge-mood" id="detailMoodBadge">😊</div>
+                            <div class="book-title-author-group">
+                                <h2 class="detail-title" id="detailTitle">書名載入中...</h2>
+                                <h4 class="detail-author" id="detailAuthor">作者載入中...</h4>
+                            </div>
+                        </div>
+                        <div class="detail-meta">
+                            <div class="meta-item">
+                                <span class="meta-label">👤 分享人</span>
+                                <span class="meta-val highlight-student" id="detailReaderInfo">913班 13號 黃于珊</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">📅 閱讀日期</span>
+                                <span class="meta-val" id="detailDate">2026-06-07</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">✨ 完讀心情</span>
+                                <span class="meta-val" id="detailMoodText">感動</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">⭐ 推薦指數</span>
+                                <span class="meta-val" id="detailRating" style="color: #ffb400; font-size: 1.15rem; letter-spacing: 2px;">⭐⭐⭐⭐⭐</span>
+                            </div>
+                        </div>
+                        <div class="book-actions">
+                            <button class="btn btn-secondary btn-sm" id="btnEditBook" onclick="triggerEditBook()">
+                                <span class="btn-icon">✏️</span>
+                                <span class="btn-text-wrap">
+                                    <span>編輯</span>
+                                    <span>內容</span>
+                                </span>
+                            </button>
+                            <button class="btn btn-danger btn-sm" id="btnDeleteBook" onclick="triggerDeleteBook()">
+                                <span class="btn-icon">🗑️</span>
+                                <span class="btn-text-wrap">
+                                    <span>移出</span>
+                                    <span>書櫃</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Page: Reflection text -->
+                <div class="book-page book-page-right">
+                    <div class="page-content-wrapper">
+                        <h3 class="reflection-heading">📖 閱讀心得與感言</h3>
+                        <div class="reflection-text" id="detailReflection">
+                            心得內容載入中...
+                        </div>
+                        <div class="detail-right-footer">
+                            <button class="btn btn-primary btn-sm" onclick="copySingleReport()">📋 複製此篇報告</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Admin Center Modal -->
+    <div id="teacherModal" class="modal-overlay">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h3>學思軒管理中心 (雲端即時同步版)</h3>
+                <button class="close-btn" onclick="closeModal('teacherModal')">&times;</button>
+            </div>
+            
+            <!-- Lock Screen -->
+            <div id="teacherLockScreen" class="teacher-auth-screen">
+                <div class="auth-box">
+                    <span class="auth-icon">🔒</span>
+                    <h4>請輸入管理密碼/PIN</h4>
+                    <p>管理中心僅供教師進行整包備份、下載雲端資料與重置。</p>
+                    <div class="form-group">
+                        <input type="password" id="teacherPin" placeholder="請輸入密碼 (提示：GTYBD)" onkeydown="if(event.key==='Enter') verifyTeacherPin()">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="verifyTeacherPin()">驗證密碼</button>
+                </div>
+            </div>
+
+            <!-- Management Dashboard (Hidden by default) -->
+            <div id="teacherDashboard" class="teacher-dashboard-content" style="display: none;">
+                <div class="teacher-badge-row">
+                    <span class="badge badge-success">✓ 已授權教師模式</span>
+                    <button class="btn btn-secondary btn-sm" onclick="exitTeacherMode()">結束管理</button>
+                </div>
+
+                <div class="tabs-container">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('tabExport')">📤 備份與雲端資料庫重設</button>
+                        <button class="tab-btn" onclick="switchTab('tabReport')">📋 複製讀書報告</button>
+                    </div>
+
+                    <!-- TAB: Database Export & Clear -->
+                    <div id="tabExport" class="tab-panel active">
+                        <h4>📤 下載全體書櫃備份 (.json)</h4>
+                        <p class="tab-desc">下載目前雲端資料庫中所有學生的完整閱讀紀錄，建議定期下載以防資料流失。</p>
+                        <button class="btn btn-primary" onclick="exportCollectiveDatabase()">下載備份檔案</button>
+                        
+                        <hr class="section-divider">
+
+                        <h4 class="danger-title">🗑️ 雲端資料庫重設</h4>
+                        <p class="tab-desc warning-text">⚠️ 警告：這將會完全清空 Firebase 雲端資料庫中的所有閱讀紀錄！此動作無法復原。</p>
+                        <button class="btn btn-danger" onclick="clearCollectiveDatabase()">重設雲端資料庫 (需兩次確認)</button>
+                    </div>
+
+                    <!-- TAB: Reports -->
+                    <div id="tabReport" class="tab-panel">
+                        <h4>📋 複製讀書總報告</h4>
+                        <p class="tab-desc">統整雲端資料庫中學生的閱讀心得，一鍵複製以便匯入 Excel 或列印存檔。</p>
+                        
+                        <div class="report-filters">
+                            <div class="form-group">
+                                <label for="reportClassSelect">選擇欲統計的班級：</label>
+                                <select id="reportClassSelect">
+                                    <option value="all">全體班級</option>
+                                    <!-- Dynamic -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportFormatSelect">報告格式：</label>
+                                <select id="reportFormatSelect">
+                                    <option value="detailed">詳細心得清單 (Markdown)</option>
+                                    <option value="table">簡要統計表 (Tabular)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="copyCollectiveReport()">產生並複製報告</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">提示訊息</div>
+
+    <!-- Firebase SDK (v9 Compatibility mode) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- Main JavaScript Code -->
+    <script src="app.js"></script>
+</body>
+</html>
